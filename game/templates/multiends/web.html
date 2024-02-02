@@ -1,17 +1,22 @@
 {% load static %}
+
 <head>
     <link rel="stylesheet" href="https://cdn.acwing.com/static/jquery-ui-dist/jquery-ui.min.css">
     <script src="https://cdn.acwing.com/static/jquery/js/jquery-3.3.1.min.js"></script>
 
     <link rel="stylesheet" href="{% static 'css/game.css' %}">
     <script src="{% static 'js/dist/game.js' %}"></script>
+
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap-5.0.0-beta3-dist/css/bootstrap.css' %}">
+    <script src="{% static 'plugins/boostrap-5.0.0-beta3-dist/css/bootstrap.css' %}"></script>
 </head>
 <body style="margin: 0">
     <div id="game_12345678"></div>
     <script>
         $(document).ready(function(){
             let game = new Game("game_12345678");
+            //console.log(game);
         });
-        console.log("hello world");
+        //console.log("hello world");
     </script>
 </body>

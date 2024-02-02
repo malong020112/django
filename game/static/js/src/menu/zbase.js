@@ -47,35 +47,4 @@ class GameMenu{
     hide(){
         this.$menu.hide();
     }
-}class GamePlayground{
-    constructor(root){
-        this.root = root;
-        this.$playground = $(`<div>游戏</div>`);
-
-        this.hide();
-        this.root.$game.append(this.$playground);
-
-        this.start();
-    }
-    start(){
-
-    }
-    show(){
-        this.$playground.show();
-    }
-    hide(){
-        this.$playground.hide();
-    }
-}class Game {
-    constructor(id) {
-        this.id = id;
-        this.$game = $('#' + id);
-        this.menu = new GameMenu(this);
-        this.playground = new GamePlayground(this);
-
-        this.start();
-    }
-    start(){
-        
-    }
 }
