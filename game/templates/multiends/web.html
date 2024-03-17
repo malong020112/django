@@ -5,14 +5,15 @@
     <script src="https://cdn.acwing.com/static/jquery/js/jquery-3.3.1.min.js"></script>
 
     <link rel="stylesheet" href="{% static 'css/game.css' %}">
-    <script src="{% static 'js/dist/game.js' %}"></script>
+    <!-- <script src="{% static 'js/dist/game.js' %}"></script> -->
 
     <link rel="stylesheet" href="{% static 'plugins/bootstrap-5.0.0-beta3-dist/css/bootstrap.css' %}">
-    <script src="{% static 'plugins/boostrap-5.0.0-beta3-dist/css/bootstrap.css' %}"></script>
+    <!-- <script src="{% static 'plugins/boostrap-5.0.0-beta3-dist/css/bootstrap.css' %}"></script> -->
 </head>
 <body style="margin: 0">
     <div id="game_12345678"></div>
-    <script>
+    <script type="module">
+        import {Game} from "{% static 'js/dist/game.js' %}";//模块化引入  避免全局变量命名冲突
         $(document).ready(function(){
             let game = new Game("game_12345678");
             //console.log(game);
