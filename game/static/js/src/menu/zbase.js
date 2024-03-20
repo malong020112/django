@@ -37,6 +37,7 @@ class GameMenu{
         this.$single.click(function(){
             outer.hide();
             outer.root.playground.show();
+            outer.root.playground.resize();
         });
         this.$multi.click(function(){
             console.log("multi");

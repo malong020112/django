@@ -15,7 +15,7 @@ class Player extends GameObject{
         this.speed = speed;
         this.radius = radius;
         this.is_me = is_me;
-        this.eps = 0.1;
+        this.eps = 0.01;
         this.friction = 0.9; //摩擦系数
         this.start_attack= 0;// >4才能开始攻击的
 
@@ -27,8 +27,8 @@ class Player extends GameObject{
             this.add_listening_events();
         }
         else{
-            let tx = Math.random() * this.playground.width;
-            let ty = Math.random() * this.playground.height;
+            let tx = Math.random() * this.playground.width / this.playground.scale;
+            let ty = Math.random() * this.playground.height / this.playground.scale;
             this.move_to(tx, ty);
         }
     }
@@ -37,9 +37,11 @@ class Player extends GameObject{
         this.playground.game_map.$canvas.on("contextmenu", function(){
             return false;
         });
+        const rect = this.ctx.canvas.getBoundingClientRect();
         this.playground.game_map.$canvas.mousedown(function(e){
+            
             if(e.which == 3){
-                outer.move_to(e.clientX, e.clientY);
+                outer.move_to((e.clientX - rect.left)/ outer.playground.scale, (e.clientY - rect.top)/ outer.playground.scale);
             }
         });
         let mouseX = 0, mouseY = 0;
@@ -50,7 +52,7 @@ class Player extends GameObject{
         $(window).keydown(function(e){
             if(e.which == 81){
                 //console.log(outer.mouseX, " ", outer.mouseY);
-                outer.shoot_fireball(outer.mouseX, outer.mouseY);
+                outer.shoot_fireball((outer.mouseX - rect.left)/ outer.playground.scale, (outer.mouseY - rect.top)/ outer.playground.scale);
                 return false;
             }
         })
@@ -69,13 +71,13 @@ class Player extends GameObject{
     }
     shoot_fireball(tx, ty){
         let x = this.x, y = this.y;
-        let radius = this.playground.height * 0.01;
+        let radius = 0.01;
         let angle = Math.atan2(ty - this.y, tx - this.x);
         let vx = Math.cos(angle), vy = Math.sin(angle);
         let color = "orange";
-        let speed = this.playground.height * 0.7;
-        let move_length = this.playground.height * 1.0;
-        let damage = this.playground.height * 0.01;
+        let speed =  0.6;
+        let move_length = 1.0;
+        let damage =  0.01;
         new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, damage);
     }
     is_attacked(angle, damage){//是否被攻击  在fireball -> attack()中被引用
@@ -92,7 +94,7 @@ class Player extends GameObject{
         }
 
         this.radius -= damage;
-        if(this.radius < 10){
+        if(this.radius < this.eps){
             this.destroy();
             return false;
         }
@@ -120,8 +122,8 @@ class Player extends GameObject{
                 this.move_length = 0;
                 this.vx = this.vy = 0;
                 if(!this.is_me){
-                    let tx = Math.random() * this.playground.width;
-                    let ty = Math.random() * this.playground.height;
+                    let tx = Math.random() * this.playground.width / this.playground.scale;
+                    let ty = Math.random() * this.playground.height / this.playground.scale;
                     this.move_to(tx, ty);
                 }
             }
@@ -137,20 +139,21 @@ class Player extends GameObject{
         this.render();
     }
     render(){
+        let scale = this.playground.scale;
         //console.log(this.is_me);
         if(this.is_me){
             console.log(this.img.src);
             this.ctx.save();
-            this.ctx.beginPath();
-            this.ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+            this.ctx.beginPath(); //画圆位置转化为绝对值
+            this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, Math.PI * 2, false);
             //this.ctx.stroke();
             this.ctx.clip();
-            this.ctx.drawImage(this.img, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            this.ctx.drawImage(this.img, (this.x - this.radius) * scale, (this.y - this.radius) * scale, this.radius * 2 * scale, this.radius * 2 * scale);
             this.ctx.restore();
         }
         else{
             this.ctx.beginPath();
-            this.ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, false);
+            this.ctx.arc(this.x * scale, this.y * scale, this.radius * scale, 0, 2 * Math.PI, false);
             this.ctx.fillStyle = this.color;
             this.ctx.fill();
         }
