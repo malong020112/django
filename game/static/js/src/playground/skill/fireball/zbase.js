@@ -31,28 +31,48 @@ class FireBall extends GameObject{
     }
     attack(player){
         let angle = Math.atan2(player.y - this.y, player.x - this.x);
+        //console.log("is attacked")
         player.is_attacked(angle, this.damage);
+        if(this.playground.mode === "multi mode"){
+            this.playground.mps.send_attack(player.uid, player.x, player.y, angle, this.damage, this.uid);
+        }
         this.destroy();
+    }
+    on_destroy(){
+        let fireballs = this.player.fireballs;
+        for(let i = 0; i < fireballs.length; i ++ ){
+            if(fireballs[i] === this){
+                fireballs.splice(i, 1);
+                break;
+            }
+        }
+    }
+    update_move(){
+        let dist = Math.min(this.move_length, this.speed * this.timedelta / 1000);
+        this.x += this.vx * dist;
+        this.y += this.vy * dist;
+        this.move_length -= dist;
+    }
+    update_attack(){
+        //碰撞检测
+        for(let i = 0; i < this.playground.players.length; i ++ ){
+            let player = this.playground.players[i];
+            if(this.player !== player && this.is_collision(player)){
+                this.attack(player);
+                break;
+            }
+        }
     }
     update(){
         if(this.move_length < this.eps){
             this.destroy();
             return false;
         }
-        else{
-            let dist = Math.min(this.move_length, this.speed * this.timedelta / 1000);
-            this.x += this.vx * dist;
-            this.y += this.vy * dist;
-            this.move_length -= dist;
-
-            //碰撞检测
-            for(let i = 0; i < this.playground.players.length; i ++ ){
-                let player = this.playground.players[i];
-                if(this.player != player && this.is_collision(player)){
-                    this.attack(player);
-                }
-            }
+        this.update_move();
+        if(this.player.character !== "enemy"){//只有发出方的火球才做碰撞检测
+            this.update_attack();
         }
+
         this.render();
     }
     render(){

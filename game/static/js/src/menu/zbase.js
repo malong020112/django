@@ -36,11 +36,13 @@ class GameMenu{
         let outer = this;
         this.$single.click(function(){
             outer.hide();
-            outer.root.playground.show();
+            outer.root.playground.show("single mode");
             outer.root.playground.resize();
         });
         this.$multi.click(function(){
-            console.log("multi");
+            outer.hide();
+            outer.root.playground.show("multi mode");
+            outer.root.playground.resize();
         });
         this.$settings.click(function(){
             outer.root.settings.logout_remote();

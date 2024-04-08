@@ -5,8 +5,21 @@ class GameObject{
         Game_Objects.push(this);
         this.has_called_start = false; //是否执行过start()
         this.timedelta = 0; //当前帧距离上一帧的时间间隔  （浏览器之间帧间隔可能不同 速度用时间衡量 /ms
+        this.uid = this.create_uid();
+
     }
     start(){ //第一帧执行一次
+
+    }
+    create_uid(){
+        let res = "";
+        for(let i = 0; i < 8; i ++ ){
+            let x = parseInt(Math.floor(Math.random() * 10));
+            res += x;
+        }
+        return res;
+    }
+    late_update(){//每帧执行一次 且在update后执行
 
     }
     update(){ //每帧执行一次
@@ -37,6 +50,10 @@ let Game_Animation = function (timestamp) {//回调函数 每一帧重绘前都�
             obj.timedelta = timestamp - last_timestamp;
             obj.update();
         }
+    }
+    for(let i = 0; i < Game_Objects.length; i ++ ){
+        let obj = Game_Objects[i];
+        obj.late_update();
     }
     last_timestamp = timestamp;
     requestAnimationFrame(Game_Animation);
