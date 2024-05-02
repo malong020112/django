@@ -1,6 +1,7 @@
 class Particle extends GameObject{
-    constructor(playground, x, y, radius, vx, vy, color, speed){
+    constructor(playground, x, y, radius, vx, vy, color, speed, move_length){
         super();
+        //console.log("粒子实例")
         this.playground = playground;
         this.ctx = this.playground.game_map.ctx;
         this.x = x;
@@ -10,21 +11,27 @@ class Particle extends GameObject{
         this.vy = vy;
         this.color = color;
         this.speed = speed;
+        this.move_length = move_length;
         this.friction = 0.9;
         this.eps = 0.01;
+        //console.log(this.speed, this.move_length, this.x, this.y, this.radius, this.color);
     }
     start(){
 
     }
     update(){
-        if(this.speed < this.eps){
+        if (this.move_length < this.eps || this.speed < this.eps) {
             this.destroy();
             return false;
         }
-        this.x += this.vx * this.speed * this.timedelta / 1000;
-        this.y += this.vy * this.speed * this.timedelta / 1000;
+
+        let moved = Math.min(this.move_length, this.speed * this.timedelta / 1000);
+        this.x += this.vx * moved;
+        this.y += this.vy * moved;
         this.speed *= this.friction;
+        this.move_length -= moved;
         this.render();
+
 
     }
     render(){

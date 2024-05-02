@@ -32,7 +32,7 @@ class Player extends GameObject{
         this.fireballs = []; //该用户发射的所有火球
 
 
-        //console.log(x, y);
+        //console.log(this.color);
         //console.log(this.playground);
     }
     start(){
@@ -78,9 +78,9 @@ class Player extends GameObject{
         });
         $(window).keydown(function(e){
             if(outer.playground.state !== "fighting") return false;
-            if(outer.fireball_cd >= outer.eps) return false;
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if(e.which == 81){
+                if(outer.fireball_cd >= outer.eps) return false;
                 //console.log(outer.mouseX, " ", outer.mouseY);
                 let tx = (outer.mouseX - rect.left)/ outer.playground.scale;
                 let ty = (outer.mouseY - rect.top)/ outer.playground.scale;
@@ -90,6 +90,19 @@ class Player extends GameObject{
                 }
                 outer.fireball_cd = 3;
                 return false;
+            }
+            else if(e.which == 13){
+
+                if(outer.playground.mode === "multi mode"){
+                    outer.playground.chat.show_input();
+                    return false;
+                }
+            }
+            else if(e.which === 27){
+                if(outer.playground.mode === "multi mode"){
+                    outer.playground.chat.hide_input();
+                    return false;
+                }
             }
         })
     }
@@ -131,15 +144,18 @@ class Player extends GameObject{
     }
     is_attacked(angle, damage){//是否被攻击  在fireball -> attack()中被引用
         //粒子效果
-        for(let i = 0; i < 10 + Math.random() * 5; i ++ ){
+        //console.log("触发粒子效果");
+        for(let i = 0; i < 15 + Math.random() * 15; i ++ ){
+
                 let x = this.x;
                 let y = this.y;
                 let radius = this.radius * Math.random() * 0.1;
                 let angle = 2 * Math.PI * Math.random();
                 let vx = Math.cos(angle), vy = Math.sin(angle);
                 let color = this.color;
-                let speed = this.speed * 10;
-                new Particle(this.playground, x, y, radius, vx, vy, color, speed);
+                let speed = this.speed * 7;
+                let move_length = this.radius * Math.random() * 5;
+                new Particle(this.playground, x, y, radius, vx, vy, color, speed, move_length);
         }
 
         //console.log(damage, this.radius);
@@ -170,11 +186,7 @@ class Player extends GameObject{
             this.playground.ending_Interface.win();
         }
     }
-    update(){
-        this.start_attack += this.timedelta / 1000;
-
-        if(this.character === "me" && this.playground.state === "fighting") this.update_cd();
-
+    update_move(){
         if(this.character === "robot" && this.start_attack > 4 && Math.random() * 240 < 1){//每秒渲染60帧，每帧1/240的概率攻击
             let player = this.playground.players[Math.floor(Math.random() * this.playground.players.length)];
             this.shoot_fireball(player.x, player.y);
@@ -204,7 +216,16 @@ class Player extends GameObject{
                 this.move_length -= dist;
             }
         }
+    }
+    update(){
+        this.start_attack += this.timedelta / 1000;
+
         this.update_win();
+
+        if(this.character === "me" && this.playground.state === "fighting") this.update_cd();
+
+        this.update_move();
+
         this.render();
     }
     render_skill_cd(){

@@ -116,7 +116,75 @@ let Game_Animation = function (timestamp) {//回调函数 每一帧重绘前都�
     requestAnimationFrame(Game_Animation);
 }
 requestAnimationFrame(Game_Animation);//js_api  执行一个动画并在重绘前调用回调函数更新动画
-class endingInterface extends GameObject{
+class Chat{
+    constructor(playground) {
+        this.playground = playground;
+
+        this.$history = $(`<div class = "game-chat-history"></div>`);
+        this.$input = $(`<input type = "text" class = "game-chat-input">`);
+
+        this.$history.hide();
+        this.$input.hide();
+
+        this.func_id = null;//记录监听事件id
+
+        this.playground.$playground.append(this.$history);
+        this.playground.$playground.append(this.$input);
+
+        this.start();
+    }
+    start(){
+        this.add_listening_events();
+    }
+    add_listening_events(){
+        let outer = this;
+        this.$input.keydown(function(e){
+            if(e.which === 27){
+                outer.hide_input();
+                return false;
+            }
+            else if(e.which === 13){
+                let username = outer.playground.root.settings.username;
+                let text = outer.$input.val();
+                if(text){
+                    outer.$input.val("");
+                    outer.add_message(username, text);
+                    outer.playground.mps.send_message(text);
+                }
+                outer.hide_input();
+                return false;
+            }
+        })
+    }
+    show_history(){
+        let outer = this;
+        this.$history.fadeIn();
+        if(this.func_id) clearTimeout(this.func_id);//清除上一次计时器
+        this.func_id = setTimeout(function(){
+            outer.$history.fadeOut();
+            outer.func_id = null;
+        }, 5000);
+    }
+    render_message(message){
+        return $(`<div>${message}</div>`);
+    }
+    add_message(username, text){
+        this.show_history();
+        let message = `[${username}] ${text}`;
+        this.$history.append(this.render_message(message));
+        this.$history.scrollTop(this.$history[0].scrollHeight);
+    }
+    show_input(){
+        this.show_history();
+        this.$input.show();
+        this.$input.focus(); //输入时，聚焦于输入框
+    }
+    hide_input(){
+        this.$input.hide();
+        this.playground.game_map.$canvas.focus();//退出时 聚焦于游戏界面
+    }
+
+}class endingInterface extends GameObject{
     constructor(playground) {
         super();
         this.playground = playground;
@@ -221,8 +289,9 @@ class endingInterface extends GameObject{
         this.ctx.fillText(this.text, this.playground.width / 2, 20);
     }
 }class Particle extends GameObject{
-    constructor(playground, x, y, radius, vx, vy, color, speed){
+    constructor(playground, x, y, radius, vx, vy, color, speed, move_length){
         super();
+        //console.log("粒子实例")
         this.playground = playground;
         this.ctx = this.playground.game_map.ctx;
         this.x = x;
@@ -232,21 +301,27 @@ class endingInterface extends GameObject{
         this.vy = vy;
         this.color = color;
         this.speed = speed;
+        this.move_length = move_length;
         this.friction = 0.9;
         this.eps = 0.01;
+        //console.log(this.speed, this.move_length, this.x, this.y, this.radius, this.color);
     }
     start(){
 
     }
     update(){
-        if(this.speed < this.eps){
+        if (this.move_length < this.eps || this.speed < this.eps) {
             this.destroy();
             return false;
         }
-        this.x += this.vx * this.speed * this.timedelta / 1000;
-        this.y += this.vy * this.speed * this.timedelta / 1000;
+
+        let moved = Math.min(this.move_length, this.speed * this.timedelta / 1000);
+        this.x += this.vx * moved;
+        this.y += this.vy * moved;
         this.speed *= this.friction;
+        this.move_length -= moved;
         this.render();
+
 
     }
     render(){
@@ -290,7 +365,7 @@ class endingInterface extends GameObject{
         this.fireballs = []; //该用户发射的所有火球
 
 
-        //console.log(x, y);
+        //console.log(this.color);
         //console.log(this.playground);
     }
     start(){
@@ -336,9 +411,9 @@ class endingInterface extends GameObject{
         });
         $(window).keydown(function(e){
             if(outer.playground.state !== "fighting") return false;
-            if(outer.fireball_cd >= outer.eps) return false;
             const rect = outer.ctx.canvas.getBoundingClientRect();
             if(e.which == 81){
+                if(outer.fireball_cd >= outer.eps) return false;
                 //console.log(outer.mouseX, " ", outer.mouseY);
                 let tx = (outer.mouseX - rect.left)/ outer.playground.scale;
                 let ty = (outer.mouseY - rect.top)/ outer.playground.scale;
@@ -348,6 +423,19 @@ class endingInterface extends GameObject{
                 }
                 outer.fireball_cd = 3;
                 return false;
+            }
+            else if(e.which == 13){
+
+                if(outer.playground.mode === "multi mode"){
+                    outer.playground.chat.show_input();
+                    return false;
+                }
+            }
+            else if(e.which === 27){
+                if(outer.playground.mode === "multi mode"){
+                    outer.playground.chat.hide_input();
+                    return false;
+                }
             }
         })
     }
@@ -389,15 +477,18 @@ class endingInterface extends GameObject{
     }
     is_attacked(angle, damage){//是否被攻击  在fireball -> attack()中被引用
         //粒子效果
-        for(let i = 0; i < 10 + Math.random() * 5; i ++ ){
+        //console.log("触发粒子效果");
+        for(let i = 0; i < 15 + Math.random() * 15; i ++ ){
+
                 let x = this.x;
                 let y = this.y;
                 let radius = this.radius * Math.random() * 0.1;
                 let angle = 2 * Math.PI * Math.random();
                 let vx = Math.cos(angle), vy = Math.sin(angle);
                 let color = this.color;
-                let speed = this.speed * 10;
-                new Particle(this.playground, x, y, radius, vx, vy, color, speed);
+                let speed = this.speed * 7;
+                let move_length = this.radius * Math.random() * 5;
+                new Particle(this.playground, x, y, radius, vx, vy, color, speed, move_length);
         }
 
         //console.log(damage, this.radius);
@@ -428,11 +519,7 @@ class endingInterface extends GameObject{
             this.playground.ending_Interface.win();
         }
     }
-    update(){
-        this.start_attack += this.timedelta / 1000;
-
-        if(this.character === "me" && this.playground.state === "fighting") this.update_cd();
-
+    update_move(){
         if(this.character === "robot" && this.start_attack > 4 && Math.random() * 240 < 1){//每秒渲染60帧，每帧1/240的概率攻击
             let player = this.playground.players[Math.floor(Math.random() * this.playground.players.length)];
             this.shoot_fireball(player.x, player.y);
@@ -462,7 +549,16 @@ class endingInterface extends GameObject{
                 this.move_length -= dist;
             }
         }
+    }
+    update(){
+        this.start_attack += this.timedelta / 1000;
+
         this.update_win();
+
+        if(this.character === "me" && this.playground.state === "fighting") this.update_cd();
+
+        this.update_move();
+
         this.render();
     }
     render_skill_cd(){
@@ -625,7 +721,7 @@ class endingInterface extends GameObject{
             if(uid === outer.uid) return false;
 
             let event = data.event;
-
+            console.log(event);
             if(event === "create_player"){
                 outer.receive_create_player(uid, data.username, data.photo);
             }
@@ -637,6 +733,10 @@ class endingInterface extends GameObject{
             }
             else if(event === "attack"){
                 outer.receive_attack(uid, data.attackee_uid, data.x, data.y, data.angle, data.damage, data.ball_uid);
+            }
+            else if(event === "message"){
+                console.log("receive post");
+                outer.receive_message(data.username, data.text);
             }
         };
     }
@@ -656,7 +756,7 @@ class endingInterface extends GameObject{
             this.playground.width / 2 / this.playground.scale,
             0.5,
             0.05,
-            "black",
+            "white",
             0.3,
             "enemy",
             username,
@@ -734,6 +834,20 @@ class endingInterface extends GameObject{
             attackee.receive_attack(x, y, angle, damage, ball_uid, attacker);
         }
     }
+    send_message(text){
+        console.log("send", text);
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'uid': outer.uid,
+            'username': outer.playground.root.settings.username,
+            'text': text,
+        }));
+    }
+    receive_message(username, text){
+        console.log("receive", text);
+        this.playground.chat.add_message(username, text);
+    }
 }class GamePlayground{
     constructor(root){
         this.root = root;
@@ -796,6 +910,7 @@ class endingInterface extends GameObject{
         else if(mode === "multi mode"){
             //console.log("multi mode!");
             let outer = this;
+            this.chat = new Chat(this);
             this.mps = new MultiPlayerSocket(this);
             this.mps.uid = this.players[0].uid;//mps的uid为自己的uid 以便于向服务器发送信息时带上自己的uid
             //console.log(this.mps);

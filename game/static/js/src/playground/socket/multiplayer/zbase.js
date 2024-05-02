@@ -15,7 +15,7 @@ class MultiPlayerSocket{
             if(uid === outer.uid) return false;
 
             let event = data.event;
-
+            console.log(event);
             if(event === "create_player"){
                 outer.receive_create_player(uid, data.username, data.photo);
             }
@@ -27,6 +27,10 @@ class MultiPlayerSocket{
             }
             else if(event === "attack"){
                 outer.receive_attack(uid, data.attackee_uid, data.x, data.y, data.angle, data.damage, data.ball_uid);
+            }
+            else if(event === "message"){
+                console.log("receive post");
+                outer.receive_message(data.username, data.text);
             }
         };
     }
@@ -46,7 +50,7 @@ class MultiPlayerSocket{
             this.playground.width / 2 / this.playground.scale,
             0.5,
             0.05,
-            "black",
+            "white",
             0.3,
             "enemy",
             username,
@@ -117,11 +121,25 @@ class MultiPlayerSocket{
         }));
     }
     receive_attack(uid, attackee_uid, x, y, angle, damage, ball_uid){
-        //console.log("receive_attack");
+        console.log("receive_attack");
         let attacker = this.get_player(uid);
         let attackee = this.get_player(attackee_uid);
         if(attacker && attackee){
             attackee.receive_attack(x, y, angle, damage, ball_uid, attacker);
         }
+    }
+    send_message(text){
+        console.log("send", text);
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "message",
+            'uid': outer.uid,
+            'username': outer.playground.root.settings.username,
+            'text': text,
+        }));
+    }
+    receive_message(username, text){
+        console.log("receive", text);
+        this.playground.chat.add_message(username, text);
     }
 }

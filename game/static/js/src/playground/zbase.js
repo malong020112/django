@@ -60,6 +60,7 @@ class GamePlayground{
         else if(mode === "multi mode"){
             //console.log("multi mode!");
             let outer = this;
+            this.chat = new Chat(this);
             this.mps = new MultiPlayerSocket(this);
             this.mps.uid = this.players[0].uid;//mps的uid为自己的uid 以便于向服务器发送信息时带上自己的uid
             //console.log(this.mps);
