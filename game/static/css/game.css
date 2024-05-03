@@ -456,3 +456,46 @@
     font-size: 2vh;
     background-color: rgba(222,225,230, 0.2);
 }
+.rank-board{
+    width: 45vw;
+    height:90vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: lightseagreen;
+    border-radius: 30px;
+    text-align: center;
+}
+.rank-list-item{
+    height:6vh;
+    width:35vw;
+    border-radius: 15px;
+    margin:1vh 5vw 1vh 5vw;
+    position: relative;
+    font-size: 20px;
+}
+.rank-list-item-name{
+    position: absolute;
+    left:10vw;
+}
+.rank-list-item-score{
+    position: absolute;
+    right:6vw;
+}
+.rank-list-item-no{
+    position: absolute;
+    left:2vw;
+}
+.rank-i{
+    color: white !important;
+}
+.gold{
+    color:#ffd700!important;
+}
+.silver{
+    color: #C0c0c0!important;
+}
+.copper{
+    color: #B87333;
+}

@@ -12,6 +12,10 @@ class GameMenu{
             匹配模式
         </div>
         <br>
+        <div class = "game-menu-field-item game-menu-field-item-rank">
+            排行榜
+        </div>
+        <br>
         <div class="game-menu-field-item game-menu-field-item-settings">
             退出
         </div>
@@ -24,6 +28,7 @@ class GameMenu{
         this.root.$game.append(this.$menu);
         this.$single = this.$menu.find('.game-menu-field-item-single');
         this.$multi = this.$menu.find('.game-menu-field-item-multi');
+        this.$rank = this.$menu.find('.game-menu-field-item-rank');
         this.$settings = this.$menu.find('.game-menu-field-item-settings');
         //console.log(this.root);
 
@@ -47,6 +52,10 @@ class GameMenu{
         this.$settings.click(function(){
             outer.root.settings.logout_remote();
         });
+        this.$rank.click(function(){
+            //outer.hide();
+            outer.root.rank.show();
+        })
     }
 
     show(){

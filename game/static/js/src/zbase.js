@@ -5,6 +5,7 @@ export class Game {
         this.$game = $('#' + id);
         this.settings = new Settings(this);
         this.menu = new GameMenu(this);
+        this.rank = new RankList(this);
         this.playground = new GamePlayground(this);
 
         this.start();
