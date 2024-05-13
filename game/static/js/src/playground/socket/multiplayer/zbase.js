@@ -108,7 +108,7 @@ class MultiPlayerSocket{
     }
     send_attack(attackee_uid, x, y, angle, damage, ball_uid){
         let outer = this;
-        console.log("send attack");
+        //console.log("send attack");
         this.ws.send(JSON.stringify({
             'event': "attack",
             'uid': outer.uid,
@@ -121,7 +121,7 @@ class MultiPlayerSocket{
         }));
     }
     receive_attack(uid, attackee_uid, x, y, angle, damage, ball_uid){
-        console.log("receive_attack");
+        //console.log("receive_attack");
         let attacker = this.get_player(uid);
         let attackee = this.get_player(attackee_uid);
         if(attacker && attackee){
@@ -129,7 +129,7 @@ class MultiPlayerSocket{
         }
     }
     send_message(text){
-        console.log("send", text);
+        //console.log("send", text);
         let outer = this;
         this.ws.send(JSON.stringify({
             'event': "message",
@@ -139,7 +139,7 @@ class MultiPlayerSocket{
         }));
     }
     receive_message(username, text){
-        console.log("receive", text);
+        //console.log("receive", text);
         this.playground.chat.add_message(username, text);
     }
 }

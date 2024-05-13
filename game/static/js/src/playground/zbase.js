@@ -1,8 +1,11 @@
+let SCALE;
 class GamePlayground{
     constructor(root){
         this.root = root;
-        this.$playground = $(`<div class="game-playground"></div>`);
 
+        this.focus_player = null; // 镜头聚焦玩家
+        this.gametime_obj = null; // 游戏时间
+        this.$playground = $(`<div class="game-playground"></div>`);
 
         this.hide();
         this.root.$game.append(this.$playground);
@@ -25,20 +28,40 @@ class GamePlayground{
         this.height = unit * 9;
 
         this.scale = this.height;
+        SCALE = this.scale;
         if(this.game_map) this.game_map.resize();//若地图已创建 resize
+        if (this.mini_map) this.mini_map.resize();
     }
+    re_calculate_cx_cy(x, y) {
+        this.cx = x - 0.5 * this.width / this.scale; //己方视角中心点的坐标
+        this.cy = y - 0.5 * this.height / this.scale;
+
+        let l = this.game_map.l;
+        if (this.focus_player) {
+            //console.log(this.focus_player);
+            this.cx = Math.max(this.cx, -2 * l);
+            this.cx = Math.min(this.cx, this.virtual_map_width - (this.width / this.scale - 2 * l));
+            this.cy = Math.max(this.cy, -l);
+            this.cy = Math.min(this.cy, this.virtual_map_height - (this.height / this.scale - l));
+        }
+    }
+
     show(mode){
         this.$playground.show();
         this.resize();
         //生成游戏界面
-
+        this.state = "waiting"; // waiting ==> fighting ==> over
         this.mode = mode; // 记录模式
 
-        this.width = this.$playground.width();
-        this.height = this.$playground.height();
-        this.game_map = new GameMap(this);
+        //this.width = this.$playground.width();
+        //this.height = this.$playground.height();
+        //console.log(Math.max(this.width, this.height));
+        this.virtual_map_width = Math.max(this.width, this.height) / this.scale * 2;
+        this.virtual_map_height = this.virtual_map_width; // 正方形地图，方便画格子
 
-        this.state = "waiting"; // waiting ==> fighting ==> over
+        this.game_map = new GameMap(this);
+        //this.grid = new Grid(this);
+
         this.notice_board = new NoticeBoard(this);
         this.ending_Interface = new endingInterface(this);
         this.player_count = 0;
@@ -47,14 +70,17 @@ class GamePlayground{
 
         this.players = [];
         this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.3, "me", this.root.settings.username, this.root.settings.photo));
-
+        // 根据玩家位置确定画布相对于虚拟地图的偏移量
+        this.re_calculate_cx_cy(this.players[0].x, this.players[0].y);
+        this.focus_player = this.players[0];
 
 
         //console.log(mode);
         if(mode === "single mode"){
             //人机
             for(let i = 0; i < 5; i ++ ){
-                this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, this.get_random_color(), 0.3, "robot"));
+                let px = Math.random() * this.virtual_map_width, py = Math.random() * this.virtual_map_height;
+                this.players.push(new Player(this, px, py, 0.05, this.get_random_color(), 0.3, "robot"));
             }
         }
         else if(mode === "multi mode"){
@@ -70,6 +96,9 @@ class GamePlayground{
             }
         }
 
+        this.mini_map = new MiniMap(this, this.game_map);
+        this.mini_map.resize();
+
     }
     hide(){
         //清空所有游戏元素
@@ -84,6 +113,15 @@ class GamePlayground{
             this.notice_board.destroy();
             this.notice_board = null;
         }
+        if (this.mini_map) {
+            this.mini_map.destroy();
+            this.mini_map = null;
+        }
+        if (this.gametime_obj) {
+            this.gametime_obj.destroy();
+            this.gametime_obj = null;
+        }
+
         if (this.score_board) {
             this.score_board.destroy();
             this.score_board = null;

@@ -3,7 +3,8 @@ class RankList{
         this.root = root;
         this.$rank = $(`
             <div class = "rank-board">
-                <i class = "layui-icon layui-icon-error" style = "cursor: pointer;font-size: 50px;position: absolute; top: 10px; right: 10px;" id = "close"></i>
+                <i class = "layui-icon layui-icon-refresh" style = "cursor: pointer;font-size: 45px;position: absolute; top: 10px; left: 10px;" id = "rank-refresh"></i>
+                <i class = "layui-icon layui-icon-error" style = "cursor: pointer;font-size: 50px;position: absolute; top: 10px; right: 10px;" id = "rank-close"></i>
                 <h1 style = "margin-top: 3vh">天梯分</h1>
                 <div id = "rank-list">
                 </div>
@@ -21,12 +22,24 @@ class RankList{
     }
     add_listening_events(){
         let outer = this;
-        document.getElementById("close").addEventListener("click", function(){
+        document.getElementById("rank-close").addEventListener("click", function(){
             outer.hide();
             //outer.root.menu.show();
         })
+        document.getElementById("rank-refresh").addEventListener("click", function(){
+            //console.log("refresh");
+            outer.get_rank_list();
+        })
     }
     get_rank_list(){
+        // 获取 ID 为 "rank-list" 的 div 元素
+        var rankList = document.getElementById("rank-list");
+
+        // 移除所有子 div 元素
+        while (rankList.firstChild) {
+            rankList.removeChild(rankList.firstChild);
+        }
+
         $.ajax({
             url: "http://8.140.22.23:8000/rank/getrank",
             type: "GET",

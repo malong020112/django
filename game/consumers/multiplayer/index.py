@@ -12,6 +12,8 @@ from thrift.server import TServer
 from match_system.src.match_server.match_service import Match
 from game.models.player.player import Player
 from channels.db import database_sync_to_async
+
+
 class MultiPlayer(AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
@@ -43,11 +45,11 @@ class MultiPlayer(AsyncWebsocketConsumer):
 
     async def move_to(self, data):
         await self.channel_layer.group_send(self.room_name, {
-                'type': "group_send_event",
-                'event': "move_to",
-                'uid': data['uid'],
-                'tx': data['tx'],
-                'ty': data['ty'],
+            'type': "group_send_event",
+            'event': "move_to",
+            'uid': data['uid'],
+            'tx': data['tx'],
+            'ty': data['ty'],
         })
 
     async def shoot_fireball(self, data):
@@ -70,15 +72,14 @@ class MultiPlayer(AsyncWebsocketConsumer):
 
         for player in players:
             if player['uid'] == data['attackee_uid']:
-                player['hp'] -= 25
+                player['hp'] -= 20
 
         remain_cnt = 0
         for player in players:
             if player['hp'] > 0:
                 remain_cnt += 1
 
-
-        if remain_cnt > 1: #继续进行哦游戏
+        if remain_cnt > 1:  # 继续进行哦游戏
             if self.room_name:
                 cache.set(self.room_name, players, 3600)
             if remain_cnt == 2:
@@ -88,26 +89,30 @@ class MultiPlayer(AsyncWebsocketConsumer):
                         print(player['rank'])
                         cache.set(self.room_name, players, 3600)
 
-        else: #游戏结算
+        else:  # 游戏结算
             no1 = ""
             no2 = ""
             no3 = ""
             no1_score = 0
             no2_score = 0
             no3_score = 0
+
             def db_update_player_score(username, score):
                 player = Player.objects.get(user__username=username)
                 player.score += score
                 player.save()
+
             # 计算预期胜率
             def expected_score(player_rating, opponent_rating):
                 return 1 / (1 + math.pow(10, (opponent_rating - player_rating) / 400))
+
             # 结算后的增加/减少的分数
             def update_rating(player_rating, opponent_rating, player_score, k_factor=32):
                 expected = expected_score(player_rating, opponent_rating)
                 return k_factor * (player_score - expected)
+
             for player in players:
-                print("=====\n",player)
+                print("=====\n", player)
                 if player['hp'] <= 0 and player['rank'] == 0:
                     player['rank'] = 2
                     no2_score = player['score']
@@ -132,13 +137,11 @@ class MultiPlayer(AsyncWebsocketConsumer):
             print(score1, score2, score3)
             print(no1, no2, no3)
 
-
-
             await database_sync_to_async(db_update_player_score)(no1, score1)
             await database_sync_to_async(db_update_player_score)(no2, score2)
             await database_sync_to_async(db_update_player_score)(no3, score3)
 
-        await self .channel_layer.group_send(self.room_name, {
+        await self.channel_layer.group_send(self.room_name, {
             'type': "group_send_event",
             'event': "attack",
             'uid': data['uid'],
@@ -151,7 +154,7 @@ class MultiPlayer(AsyncWebsocketConsumer):
         })
 
     async def message(self, data):
-        await self .channel_layer.group_send(self.room_name, {
+        await self.channel_layer.group_send(self.room_name, {
             'type': "group_send_event",
             'event': "message",
             'uid': data['uid'],
@@ -160,13 +163,13 @@ class MultiPlayer(AsyncWebsocketConsumer):
         })
 
     async def group_send_event(self, data):
-        if not self.room_name:  #找到所在游戏房间
-            keys = cache.keys('*%s*'%(self.uid))
+        if not self.room_name:  # 找到所在游戏房间
+            keys = cache.keys('*%s*' % (self.uid))
             if keys:
                 self.room_name = keys[0]
-        await self.send(text_data=json.dumps(data))   #发送给前端
+        await self.send(text_data=json.dumps(data))  # 发送给前端
 
-    async def receive(self, text_data): #从前端接收
+    async def receive(self, text_data):  # 从前端接收
         data = json.loads(text_data)
         print(data)
         event = data['event']
@@ -180,3 +183,5 @@ class MultiPlayer(AsyncWebsocketConsumer):
             await self.attack(data)
         elif event == "message":
             await self.message(data)
+
+
