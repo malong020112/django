@@ -72,7 +72,7 @@ class MultiPlayer(AsyncWebsocketConsumer):
 
         for player in players:
             if player['uid'] == data['attackee_uid']:
-                player['hp'] -= 20
+                player['hp'] -= data['damage']
 
         remain_cnt = 0
         for player in players:
@@ -100,6 +100,9 @@ class MultiPlayer(AsyncWebsocketConsumer):
             def db_update_player_score(username, score):
                 player = Player.objects.get(user__username=username)
                 player.score += score
+                player.history_scores.append(int(player.score))
+                if len(player.history_scores) > 20:
+                    player.history_scores.pop(0)
                 player.save()
 
             # 计算预期胜率
@@ -141,17 +144,26 @@ class MultiPlayer(AsyncWebsocketConsumer):
             await database_sync_to_async(db_update_player_score)(no2, score2)
             await database_sync_to_async(db_update_player_score)(no3, score3)
 
-        await self.channel_layer.group_send(self.room_name, {
-            'type': "group_send_event",
-            'event': "attack",
-            'uid': data['uid'],
-            'attackee_uid': data['attackee_uid'],
-            'x': data['x'],
-            'y': data['y'],
-            'angle': data['angle'],
-            'damage': data['damage'],
-            'ball_uid': data['ball_uid'],
-        })
+        # print(data['source'])
+        if data['source'] == "fireball":
+            await self.channel_layer.group_send(self.room_name, {
+                'type': "group_send_event",
+                'event': "attack",
+                'uid': data['uid'],
+                'attackee_uid': data['attackee_uid'],
+                'x': data['x'],
+                'y': data['y'],
+                'angle': data['angle'],
+                'damage': data['damage'],
+                'ball_uid': data['ball_uid'],
+            })
+        elif data['source'] == "posion":
+            await self.channel_layer.group_send(self.room_name, {
+                'type': "group_send_event",
+                'event': "posion_attack",
+                'uid': data['uid']
+            })
+
 
     async def message(self, data):
         await self.channel_layer.group_send(self.room_name, {
@@ -183,5 +195,7 @@ class MultiPlayer(AsyncWebsocketConsumer):
             await self.attack(data)
         elif event == "message":
             await self.message(data)
+        elif event == "posion_attack":
+            await self.attack(data)
 
 

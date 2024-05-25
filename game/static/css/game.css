@@ -501,3 +501,30 @@
 .copper{
     color: #B87333;
 }
+.add-photo-div{
+    position: absolute;
+    left: 30px;
+    top: 20px;
+}
+.history-rank{
+    width: 60vw;
+    height:90vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #E0EEEE;
+    border-radius: 30px;
+    text-align: center;
+}
+.game-description-div{
+    width: 60vw;
+    height:90vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: lightseagreen;
+    border-radius: 30px;
+    text-align: center;
+}

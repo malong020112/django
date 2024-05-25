@@ -1,6 +1,7 @@
-class Settings{
-    constructor(root){
+class Settings {
+    constructor(root) {
         this.root = root;
+
         this.username = "";
         this.photo = "";
 
@@ -78,45 +79,56 @@ class Settings{
         this.$register.hide();
 
         this.root.$game.append(this.$settings);
+
+
         this.start();
+        let outer = this;
+
     }
-    start(){
+
+    start() {
         this.getinfo();
         this.add_listening_events();
     }
-    add_listening_events(){
+
+    add_listening_events() {
         this.add_listening_events_login();
         this.add_listening_events_register();
     }
-    add_listening_events_login(){//在登录框中点击注册
+
+    add_listening_events_login() {
         let outer = this;
-        this.$login_register.click(function(evnet){
+        this.$login_register.click(function (evnet) {//在登录框中点击注册
             event.preventDefault();//阻止<a>标签跳转
             outer.register();
         });
-        this.$login_submit.click(function(){
+        this.$login_submit.click(function () {
             outer.login_remote();
         });
     }
-    add_listening_events_register(){//在注册的框中点击登录
+
+    add_listening_events_register() {
         let outer = this;
-        this.$register_login.click(function(event){
+        this.$register_login.click(function (event) {//在注册的框中点击登录
             event.preventDefault();
             outer.login();
         });
-        this.$register_submit.click(function(){
+        this.$register_submit.click(function () {
             outer.register_remote();
         })
     }
-    register(){
+
+    register() {
         this.$login.hide();
         this.$register.show();
     }
-    login(){
+
+    login() {
         this.$register.hide();
         this.$login.show();
     }
-    login_remote(){ //服务器端登录
+
+    login_remote() { //服务器端登录
         let outer = this;
         let username = this.$login_username.val();
         let password = this.$login_password.val();
@@ -129,18 +141,21 @@ class Settings{
                 username: username,
                 password: password,
             },
-            success: function(resp){
+            success: function (resp) {
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
+                    outer.root.isLogin = true;
                     location.reload();//刷新页面
-                }
-                else{
+                    //outer.root.rank = new RankList(outer.root);
+
+                } else {
                     outer.$login_error_message.html(resp.result);
                 }
             }
         });
     }
-    register_remote(){ //服务器端注册
+
+    register_remote() { //服务器端注册
         let outer = this;
         let username = this.$register_username.val();
         let password = this.$register_password.val();
@@ -150,57 +165,62 @@ class Settings{
         $.ajax({
             url: "http://8.140.22.23:8000/settings/register/",
             type: "GET",
-            data:{
+            data: {
                 username: username,
                 password: password,
                 password_confirm: password_confirm,
             },
-            success: function(resp){
-                if(resp.result === "success"){
+            success: function (resp) {
+                if (resp.result === "success") {
                     location.reload();
-                }
-                else{
+                } else {
                     outer.$register_error_message.html(resp.result);
                 }
             }
         })
     }
-    logout_remote(){ //服务器端登出
+
+    logout_remote() { //服务器端登出
         $.ajax({
             url: "http://8.140.22.23:8000/settings/logout/",
             type: "GET",
-            success: function(resp){
+            success: function (resp) {
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
                     location.reload();//刷新页面
                 }
             }
         });
     }
-    getinfo(){
+
+    getinfo() {
         let outer = this;
         $.ajax({
             url: "http://8.140.22.23:8000/settings/getinfo/",
             type: "GET",
-            success: function(resp){//请求成功后执行的回调函数
+            success: function (resp) {//请求成功后执行的回调函数
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;
                     outer.hide();
                     outer.root.menu.show();
-                }
-                else{
+                    
+
+                } else {
                     outer.login();
                 }
             }
         });
+
     }
-    hide(){
+
+    hide() {
         //console.log(this.$settings);
         this.$settings.hide();
     }
-    show(){
+
+    show() {
         this.$settings.show();
     }
 }

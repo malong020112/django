@@ -1,7 +1,12 @@
-class GameMenu{
+class GameMenu {
     constructor(root) {
         this.root = root;
         this.$menu = $(`
+<div class = "add-photo-div">
+    <i class = "layui-icon layui-icon-add-circle add-photo" lay-on="add-photo" style = "font-size: 55px;cursor: pointer;"></i>
+    <i class = "layui-icon layui-icon-time history-rank-icon" style = "font-size: 55px; margin-left:20px;cursor: pointer;"></i>
+    <i class = "layui-icon layui-icon-question game-description" style = "font-size: 55px; margin-left:20px;cursor: pointer;"></i>
+</div>   
 <div class="game-menu">
     <div class="game-menu-field">
         <div class="game-menu-field-item game-menu-field-item-single">
@@ -20,51 +25,223 @@ class GameMenu{
             退出
         </div>
     </div>
-    
-</div>            
-        `);
+</div>          
 
+        `);
+        this.$historyRankDiv = $(`
+<div class = "history-rank">
+    <i class = "layui-icon layui-icon-error" style = "cursor: pointer;font-size: 50px;position: absolute; top: 10px; right: 10px;" id = "history-rank"></i>
+    <canvas id="history-rank-chart" style = "position: absolute;top:60px"></canvas>
+</div>          
+        `);
+        this.$descriptionDiv = $(`
+<div class = "game-description-div">
+    <i class = "layui-icon layui-icon-error" style = "cursor: pointer;font-size: 50px;position: absolute; top: 10px; right: 10px;" id = "game-description-close"></i>
+    <h1 style = "margin-top: 3vh">游戏说明</h1>
+    <br>
+    <br>
+    <br>
+    <h4>游戏移动：鼠标右键点击要移动到的位置</h4>
+    <h4>发射火球：按Q键后向鼠标位置发射火球</h4>
+</div>   
+        `);
         this.$menu.hide();
         this.root.$game.append(this.$menu);
+
         this.$single = this.$menu.find('.game-menu-field-item-single');
         this.$multi = this.$menu.find('.game-menu-field-item-multi');
         this.$rank = this.$menu.find('.game-menu-field-item-rank');
         this.$settings = this.$menu.find('.game-menu-field-item-settings');
         //console.log(this.root);
 
+        this.$addPhoto = this.$menu.find(".add-photo");
+
+        this.$historyRankDiv.hide();
+        this.root.$game.append(this.$historyRankDiv);
+        this.$historyRankIcon = this.$menu.find(".history-rank-icon");
+        this.$historyRankClose = this.$historyRankDiv.find("#history-rank");
+
+        this.$descriptionDiv.hide();
+        this.root.$game.append(this.$descriptionDiv);
+        this.$descriptionIcon = this.$menu.find(".game-description");
+        this.$descriptionClose = this.$descriptionDiv.find("#game-description-close");
+
         this.start();
     }
+
     start() {//游戏创建时自动调用
         this.add_listening_events()
     }
-    add_listening_events(){
+
+    add_listening_events() {
         let outer = this;
-        this.$single.click(function(){
+        this.$single.click(function () {
             outer.hide();
             outer.root.playground.show("single mode");
             outer.root.playground.resize();
         });
-        this.$multi.click(function(){
+        this.$multi.click(function () {
             outer.hide();
             outer.root.playground.show("multi mode");
             outer.root.playground.resize();
         });
-        this.$settings.click(function(){
+        this.$settings.click(function () {
             outer.root.settings.logout_remote();
         });
-        this.$rank.click(function(){
+        this.$rank.click(function () {
             //outer.hide();
             outer.root.rank.show();
         })
+        this.$historyRankIcon.click(function () {
+            console.log("click!!!")
+            outer.get_history_rank();
+        })
+        this.$historyRankClose.click(function(){
+            outer.$historyRankDiv.hide();
+        })
+        this.$descriptionIcon.click(function(){
+            console.log(outer.$descriptionDiv)
+            outer.$descriptionDiv.show();
+        });
+        this.$descriptionClose.click(function(){
+            outer.$descriptionDiv.hide();
+        })
+        this.add_listening_events_photo();
     }
 
-    show(){
+    add_listening_events_photo() {
+        let outer = this;
+        layui.use(function () {
+            var layer = layui.layer;
+            var util = layui.util;
+            // 事件
+            util.on('lay-on', {
+                'add-photo': function () {
+                    layer.prompt({title: '请输入图片链接'}, function (value, index, elem) {
+                        if (value === '') return elem.focus();
+                        let src = util.escape(value);
+
+                        // 关闭 prompt
+                        $.ajax({
+                            url: "http://8.140.22.23:8000/photo/addphoto/",
+                            type: "GET",
+                            data: {
+                                src: src,
+                            },
+                            success: function (resp) {
+                                //console.log(resp);
+                                if (resp.result === "success") {
+                                    layer.msg('已添加：' + src); // 显示 value
+                                    outer.root.settings.getinfo();
+                                }
+                            }
+                        });
+                        layer.close(index);
+                    });
+                },
+
+            })
+        });
+
+    }
+
+    get_history_rank() {
+
+        let outer = this;
+        if (outer.$chart) {
+            // 销毁之前的 Chart 实例
+            outer.$chart.destroy();
+        }
+        $.ajax({
+            url: "http://8.140.22.23:8000/rank/gethistoryrank/",
+            type: "GET",
+            success: function (resp) {//检查是否上传头像
+                //console.log(resp);
+                if (resp.result === "success") {
+                    console.log(resp.history_scores);
+                    var ctx = outer.$historyRankDiv.find("#history-rank-chart")[0].getContext('2d');
+                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                    // 创建折线图
+                    var labels = resp.history_scores.map(function(value, index) {
+                        return index; // 使用索引作为标签
+                    });
+                    outer.$chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels, // 横轴标签
+                            datasets: [{
+                                label: '历史分数',
+                                data: resp.history_scores, // 分数数据
+                                backgroundColor: 'rgba(75, 192, 192, 0.4)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                yAxes: [{
+                                    scaleLabel: {
+                                        display: true,
+                                        labelString: '分数'
+                                    }
+                                }],
+                                xAxes: [{
+                                    scaleLabel: {
+                                        display: true,
+                                        labelString: '下标'
+                                    },
+                                    ticks: {
+                                        // 如果需要自定义格式（比如下标从1开始）
+                                        callback: function (value) {
+                                            return value + 1; // 这里简单地将下标+1，根据需求修改
+                                        }
+                                    }
+                                }]
+                            }
+                        }
+                    });
+                }
+            }
+        });
+        this.$historyRankDiv.show();
+    }
+
+    render_chart() {
+
+    }
+
+    show() {
         this.$menu.show();
     }
-    hide(){
+
+    hide() {
         this.$menu.hide();
     }
-}let Game_Objects = [];
+}class GameMusic {
+    constructor(playground) {
+        this.playground = playground;
+        this.$bgm = $(`<audio class="game-playground-bgm" src="" autoplay='autoplay' loop='loop'></audio>`);
+        this.playground.$playground.append(this.$bgm);
+
+        let bgm = document.getElementsByClassName("game-playground-bgm")[0];
+
+
+
+
+    }
+    show() {
+        this.$bgm.show();
+    }
+    hide() {
+        this.$bgm.hide();
+    }
+    stop() {
+        this.$bgm.stop();
+    }
+}
+
+let Game_Objects = [];
 class GameObject{
     constructor() {
 
@@ -878,7 +1055,7 @@ class NoticeBoard extends GameObject{
         this.damage_y = 0;
         this.damage_speed = 0;
         this.move_length = 0; // 需要移动的距离
-        this.friction = .9;
+        this.friction = 0.9;
         this.eps = 0.01;
         // 渲染相关
         this.radius = radius;
@@ -893,10 +1070,12 @@ class NoticeBoard extends GameObject{
         // 状态相关
         this.hp = 100;
         this.max_hp = 100;
-        this.damage = 10;
+        this.damage = 20;
+        this.poisoned_time = 0;
         this.cur_skill = null; // 当前选择技能
         this.is_hurtable = true;
 
+        this.bgm = document.getElementsByClassName("game-playground-bgm")[0];
 
         this.start_attack = 0;// >4才能开始攻击的
         if (this.character !== "robot") {
@@ -904,6 +1083,8 @@ class NoticeBoard extends GameObject{
             this.img.src = this.photo;
         }
         if (this.character === "me") {
+
+
             this.fireball_cd = 3;
             this.fireball_img = new Image();
             this.fireball_img.src = "https://cdn.acwing.com/media/article/image/2021/12/02/1_9340c86053-fireball.png";
@@ -922,6 +1103,9 @@ class NoticeBoard extends GameObject{
             this.playground.state = "fighting";
             this.playground.notice_board.write("Fighting!");
             this.playground.gametime_obj = new GameTime(this.playground);
+
+            this.bgm.src = "http://8.140.22.23:8000/static/audio/playground/bgm.mp3";
+            this.bgm.volume = 0.5;
         }
 
         if (this.character === "me") {
@@ -1003,6 +1187,12 @@ class NoticeBoard extends GameObject{
         let dy = y2 - y1;
         return Math.sqrt(dx * dx + dy * dy);
     }
+    out_of_map() {
+        if (this.x < 0 || this.x > this.playground.virtual_map_width || this.y < 0 || this.y > this.playground.virtual_map_height) {
+            return true;
+        }
+        return false;
+    }
 
     move_to(tx, ty) {
         //if(this.character === "me") console.log(this.playground.cx, this.playground.cy);
@@ -1027,9 +1217,10 @@ class NoticeBoard extends GameObject{
         let damage = 20;
         let fireball = new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, damage);
         this.fireballs.push(fireball);
-        if(this.character !== "robot")console.log(fireball);
+        //if(this.character !== "robot")console.log(fireball);
         return fireball;
     }
+
 
     destroy_fireball(uid) {
         for (let i = 0; i < this.fireballs.length; i++) {
@@ -1079,7 +1270,43 @@ class NoticeBoard extends GameObject{
         this.y = y;
         this.is_attacked(angle, damage);
     }
+    check_in_poison() {
+        if (this.out_of_map()) {
+            return true; //出界了也算在毒中
+        }
+        let nx = this.playground.game_map.nx;
+        let l = this.playground.game_map.l;
+        let i = Math.floor(this.x / l);
+        let j = Math.floor(this.y / l);
 
+        let grids = this.playground.game_map.grids;
+        if (grids[j * nx + i].is_poisoned)
+            return true;
+    }
+    is_posion_attacked(){
+        this.hp -= 10;
+        if (this.hp <= 0) {
+            //console.log(this.hp);
+            this.destroy();
+            return false;
+        }
+    }
+    update_poisoned_time() {
+        if (this.character === "me" && this.check_in_poison()) {
+            this.poisoned_time += this.timedelta / 1000;
+            if (this.poisoned_time >= 1) {
+                this.is_posion_attacked();
+                this.playground.mps.send_attack(this.uid, 0, 0, 0, 10, 0, "posion");
+                if (this.hp <= this.eps) {
+                    this.destroy();
+                }
+                this.poisoned_time = 0; // 超过1s重新计时
+                // 用attacked_time渲染掉血
+            }
+        } else {
+            this.poisoned_time = 0;
+        }
+    }
     update_cd() {
         this.fireball_cd -= this.timedelta / 1000;
         this.fireball_cd = Math.max(0, this.fireball_cd);
@@ -1133,9 +1360,14 @@ class NoticeBoard extends GameObject{
     update() {
         this.start_attack += this.timedelta / 1000;
 
+         if (this.playground.player_count > 1) {
+            this.update_poisoned_time();
+        }
         this.update_win();
 
-        if (this.character === "me" && this.playground.state === "fighting") this.update_cd();
+        if (this.character === "me" && this.playground.state === "fighting"){
+            this.update_cd();
+        }
 
         // 如果是玩家，并且正在被聚焦，修改background的 (cx, cy)
         if (this.character === "me" && this.playground.focus_player === this) {
@@ -1144,7 +1376,48 @@ class NoticeBoard extends GameObject{
 
         this.update_move();
 
+
+
         this.render();
+    }
+
+    render_hp_bar(x, y, scale, color) {
+        this.ctx.save();
+
+        // 边框
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, 0, -Math.PI, true);
+        this.ctx.lineTo(x - this.radius * 1.3 * scale, y);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI, Math.PI * 2, false);
+        this.ctx.lineTo(x + this.radius * 1.1 * scale, y);
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // 血量条
+        let start_angle = - (1 - this.hp / this.max_hp) * Math.PI;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, start_angle, -Math.PI, true);
+        this.ctx.lineTo(x - this.radius * 1.3 * scale, y);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI, Math.PI * 2 + start_angle, false);
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+
+        // 血量值
+        this.ctx.font = 0.02 * scale + "px bold serif";
+        this.ctx.fillStyle = "rgb(0, 0, 0)";
+        this.textAlign = "center";
+        this.ctx.fillText(this.hp, x + this.radius * 1.6 * scale, y);
+
+        // 掉血量条
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, 0, start_angle, true);
+        this.ctx.lineTo(x + (this.radius * 1.3 * Math.cos(start_angle)) * scale, y + this.radius * 1.3 * Math.sin(start_angle) * scale);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI * 2 + start_angle, Math.PI * 2, false);
+        this.ctx.fillStyle = "rgb(44, 65, 43)";
+        this.ctx.fill();
+
+        this.ctx.restore();
     }
 
     render_skill_cd() {
@@ -1183,6 +1456,12 @@ class NoticeBoard extends GameObject{
             if (this.character != "me") { // 一个隐藏的bug，如果是玩家自己并且return，会导致技能图标渲染不出来
                 return;
             }
+        }
+
+        if (this.character === "me") {
+            this.render_hp_bar(ctx_x * scale, ctx_y * scale, scale, "rgb(65,105,225)"); // 蓝色
+        } else {
+            this.render_hp_bar(ctx_x * scale, ctx_y * scale, scale, "rgb(249, 19, 51)"); // 红色
         }
 
         if (this.character === "me" && this.playground.state === "fighting") {
@@ -1253,9 +1532,9 @@ class NoticeBoard extends GameObject{
     attack(player){
         let angle = Math.atan2(player.y - this.y, player.x - this.x);
         //console.log("is attacked")
-        player.is_attacked(angle, this.damage);
+        player.is_attacked(angle, this.damage, "fireball");
         if(this.playground.mode === "multi mode"){
-            this.playground.mps.send_attack(player.uid, player.x, player.y, angle, this.damage, this.uid);
+            this.playground.mps.send_attack(player.uid, player.x, player.y, angle, this.damage, this.uid, "fireball");
         }
         this.destroy();
     }
@@ -1345,6 +1624,9 @@ class NoticeBoard extends GameObject{
                 console.log("receive post");
                 outer.receive_message(data.username, data.text);
             }
+            else if(event === "posion_attack"){
+                outer.receive_posion_attack(uid);
+            }
         };
     }
     send_create_player(username, photo){
@@ -1419,9 +1701,9 @@ class NoticeBoard extends GameObject{
             fireball.uid = ball_uid;
         }
     }
-    send_attack(attackee_uid, x, y, angle, damage, ball_uid){
+    send_attack(attackee_uid, x, y, angle, damage, ball_uid, source){
         let outer = this;
-        console.log("send attack");
+        //console.log("send attack");
         this.ws.send(JSON.stringify({
             'event': "attack",
             'uid': outer.uid,
@@ -1431,10 +1713,11 @@ class NoticeBoard extends GameObject{
             'angle': angle,
             'damage': damage,
             'ball_uid': ball_uid,
+            'source': source,
         }));
     }
     receive_attack(uid, attackee_uid, x, y, angle, damage, ball_uid){
-        console.log("receive_attack");
+        //console.log("receive_attack");
         let attacker = this.get_player(uid);
         let attackee = this.get_player(attackee_uid);
         if(attacker && attackee){
@@ -1442,7 +1725,7 @@ class NoticeBoard extends GameObject{
         }
     }
     send_message(text){
-        console.log("send", text);
+        //console.log("send", text);
         let outer = this;
         this.ws.send(JSON.stringify({
             'event': "message",
@@ -1452,8 +1735,22 @@ class NoticeBoard extends GameObject{
         }));
     }
     receive_message(username, text){
-        console.log("receive", text);
+        //console.log("receive", text);
         this.playground.chat.add_message(username, text);
+    }
+    send_posion_attack(){
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "posion_attack",
+            'uid': outer.uid,
+        }));
+    }
+    receive_posion_attack(uid){
+        let player = this.get_player(uid);
+        console.log("receive posion attack");
+        if(player){
+            player.is_posion_attacked();
+        }
     }
 }let SCALE;
 class GamePlayground{
@@ -1470,6 +1767,7 @@ class GamePlayground{
         this.start();
     }
     start(){
+        //console.log("play   ", this.root.settings.photo);
         let outer = this;
         outer.resize();
         $(window).resize(function(){
@@ -1519,6 +1817,8 @@ class GamePlayground{
         this.game_map = new GameMap(this);
         //this.grid = new Grid(this);
 
+        this.game_music = new GameMusic(this);
+
         this.notice_board = new NoticeBoard(this);
         this.ending_Interface = new endingInterface(this);
         this.player_count = 0;
@@ -1526,6 +1826,7 @@ class GamePlayground{
         this.resize();
 
         this.players = [];
+
         this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.3, "me", this.root.settings.username, this.root.settings.photo));
         // 根据玩家位置确定画布相对于虚拟地图的偏移量
         this.re_calculate_cx_cy(this.players[0].x, this.players[0].y);
@@ -1624,6 +1925,8 @@ class GamePlayground{
         })
     }
     get_rank_list(){
+        console.log(this.root.isLogin)
+        //if(!this.root.isLogin) return ;
         // 获取 ID 为 "rank-list" 的 div 元素
         var rankList = document.getElementById("rank-list");
 
@@ -1663,9 +1966,10 @@ class GamePlayground{
     hide(){
         this.$rank.fadeOut(300);
     }
-}class Settings{
-    constructor(root){
+}class Settings {
+    constructor(root) {
         this.root = root;
+
         this.username = "";
         this.photo = "";
 
@@ -1743,45 +2047,56 @@ class GamePlayground{
         this.$register.hide();
 
         this.root.$game.append(this.$settings);
+
+
         this.start();
+        let outer = this;
+
     }
-    start(){
+
+    start() {
         this.getinfo();
         this.add_listening_events();
     }
-    add_listening_events(){
+
+    add_listening_events() {
         this.add_listening_events_login();
         this.add_listening_events_register();
     }
-    add_listening_events_login(){//在登录框中点击注册
+
+    add_listening_events_login() {
         let outer = this;
-        this.$login_register.click(function(evnet){
+        this.$login_register.click(function (evnet) {//在登录框中点击注册
             event.preventDefault();//阻止<a>标签跳转
             outer.register();
         });
-        this.$login_submit.click(function(){
+        this.$login_submit.click(function () {
             outer.login_remote();
         });
     }
-    add_listening_events_register(){//在注册的框中点击登录
+
+    add_listening_events_register() {
         let outer = this;
-        this.$register_login.click(function(event){
+        this.$register_login.click(function (event) {//在注册的框中点击登录
             event.preventDefault();
             outer.login();
         });
-        this.$register_submit.click(function(){
+        this.$register_submit.click(function () {
             outer.register_remote();
         })
     }
-    register(){
+
+    register() {
         this.$login.hide();
         this.$register.show();
     }
-    login(){
+
+    login() {
         this.$register.hide();
         this.$login.show();
     }
-    login_remote(){ //服务器端登录
+
+    login_remote() { //服务器端登录
         let outer = this;
         let username = this.$login_username.val();
         let password = this.$login_password.val();
@@ -1794,18 +2109,21 @@ class GamePlayground{
                 username: username,
                 password: password,
             },
-            success: function(resp){
+            success: function (resp) {
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
+                    outer.root.isLogin = true;
                     location.reload();//刷新页面
-                }
-                else{
+                    //outer.root.rank = new RankList(outer.root);
+
+                } else {
                     outer.$login_error_message.html(resp.result);
                 }
             }
         });
     }
-    register_remote(){ //服务器端注册
+
+    register_remote() { //服务器端注册
         let outer = this;
         let username = this.$register_username.val();
         let password = this.$register_password.val();
@@ -1815,63 +2133,69 @@ class GamePlayground{
         $.ajax({
             url: "http://8.140.22.23:8000/settings/register/",
             type: "GET",
-            data:{
+            data: {
                 username: username,
                 password: password,
                 password_confirm: password_confirm,
             },
-            success: function(resp){
-                if(resp.result === "success"){
+            success: function (resp) {
+                if (resp.result === "success") {
                     location.reload();
-                }
-                else{
+                } else {
                     outer.$register_error_message.html(resp.result);
                 }
             }
         })
     }
-    logout_remote(){ //服务器端登出
+
+    logout_remote() { //服务器端登出
         $.ajax({
             url: "http://8.140.22.23:8000/settings/logout/",
             type: "GET",
-            success: function(resp){
+            success: function (resp) {
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
                     location.reload();//刷新页面
                 }
             }
         });
     }
-    getinfo(){
+
+    getinfo() {
         let outer = this;
         $.ajax({
             url: "http://8.140.22.23:8000/settings/getinfo/",
             type: "GET",
-            success: function(resp){//请求成功后执行的回调函数
+            success: function (resp) {//请求成功后执行的回调函数
                 //console.log(resp);
-                if(resp.result === "success"){
+                if (resp.result === "success") {
                     outer.username = resp.username;
                     outer.photo = resp.photo;
                     outer.hide();
                     outer.root.menu.show();
-                }
-                else{
+                    
+
+                } else {
                     outer.login();
                 }
             }
         });
+
     }
-    hide(){
+
+    hide() {
         //console.log(this.$settings);
         this.$settings.hide();
     }
-    show(){
+
+    show() {
         this.$settings.show();
     }
 }export class Game {
     constructor(id) {
 
         this.id = id;
+        this.isLogin = false;
         this.$game = $('#' + id);
         this.settings = new Settings(this);
         this.menu = new GameMenu(this);

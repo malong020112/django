@@ -13,6 +13,7 @@ class GamePlayground{
         this.start();
     }
     start(){
+        //console.log("play   ", this.root.settings.photo);
         let outer = this;
         outer.resize();
         $(window).resize(function(){
@@ -62,6 +63,8 @@ class GamePlayground{
         this.game_map = new GameMap(this);
         //this.grid = new Grid(this);
 
+        this.game_music = new GameMusic(this);
+
         this.notice_board = new NoticeBoard(this);
         this.ending_Interface = new endingInterface(this);
         this.player_count = 0;
@@ -69,6 +72,7 @@ class GamePlayground{
         this.resize();
 
         this.players = [];
+
         this.players.push(new Player(this, this.width / 2 / this.scale, 0.5, 0.05, "white", 0.3, "me", this.root.settings.username, this.root.settings.photo));
         // 根据玩家位置确定画布相对于虚拟地图的偏移量
         this.re_calculate_cx_cy(this.players[0].x, this.players[0].y);

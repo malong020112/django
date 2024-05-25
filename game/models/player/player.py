@@ -7,6 +7,7 @@ class Player(models.Model):
     photo = models.URLField(max_length=256, blank=True)  # 存储头像
     score = models.IntegerField(default=1500)
     # isOnline = models.BooleanField(default=False)
+    history_scores = models.JSONField(default=[1500])
 
     def __str__(self):
         return str(self.user)

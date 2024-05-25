@@ -2,6 +2,7 @@ export class Game {
     constructor(id) {
 
         this.id = id;
+        this.isLogin = false;
         this.$game = $('#' + id);
         this.settings = new Settings(this);
         this.menu = new GameMenu(this);

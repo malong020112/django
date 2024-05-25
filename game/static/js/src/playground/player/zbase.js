@@ -14,7 +14,7 @@ class Player extends GameObject {
         this.damage_y = 0;
         this.damage_speed = 0;
         this.move_length = 0; // 需要移动的距离
-        this.friction = .9;
+        this.friction = 0.9;
         this.eps = 0.01;
         // 渲染相关
         this.radius = radius;
@@ -29,10 +29,12 @@ class Player extends GameObject {
         // 状态相关
         this.hp = 100;
         this.max_hp = 100;
-        this.damage = 10;
+        this.damage = 20;
+        this.poisoned_time = 0;
         this.cur_skill = null; // 当前选择技能
         this.is_hurtable = true;
 
+        this.bgm = document.getElementsByClassName("game-playground-bgm")[0];
 
         this.start_attack = 0;// >4才能开始攻击的
         if (this.character !== "robot") {
@@ -40,6 +42,8 @@ class Player extends GameObject {
             this.img.src = this.photo;
         }
         if (this.character === "me") {
+
+
             this.fireball_cd = 3;
             this.fireball_img = new Image();
             this.fireball_img.src = "https://cdn.acwing.com/media/article/image/2021/12/02/1_9340c86053-fireball.png";
@@ -58,6 +62,9 @@ class Player extends GameObject {
             this.playground.state = "fighting";
             this.playground.notice_board.write("Fighting!");
             this.playground.gametime_obj = new GameTime(this.playground);
+
+            this.bgm.src = "http://8.140.22.23:8000/static/audio/playground/bgm.mp3";
+            this.bgm.volume = 0.5;
         }
 
         if (this.character === "me") {
@@ -139,6 +146,12 @@ class Player extends GameObject {
         let dy = y2 - y1;
         return Math.sqrt(dx * dx + dy * dy);
     }
+    out_of_map() {
+        if (this.x < 0 || this.x > this.playground.virtual_map_width || this.y < 0 || this.y > this.playground.virtual_map_height) {
+            return true;
+        }
+        return false;
+    }
 
     move_to(tx, ty) {
         //if(this.character === "me") console.log(this.playground.cx, this.playground.cy);
@@ -163,9 +176,10 @@ class Player extends GameObject {
         let damage = 20;
         let fireball = new FireBall(this.playground, this, x, y, radius, vx, vy, color, speed, move_length, damage);
         this.fireballs.push(fireball);
-        if(this.character !== "robot")console.log(fireball);
+        //if(this.character !== "robot")console.log(fireball);
         return fireball;
     }
+
 
     destroy_fireball(uid) {
         for (let i = 0; i < this.fireballs.length; i++) {
@@ -215,7 +229,43 @@ class Player extends GameObject {
         this.y = y;
         this.is_attacked(angle, damage);
     }
+    check_in_poison() {
+        if (this.out_of_map()) {
+            return true; //出界了也算在毒中
+        }
+        let nx = this.playground.game_map.nx;
+        let l = this.playground.game_map.l;
+        let i = Math.floor(this.x / l);
+        let j = Math.floor(this.y / l);
 
+        let grids = this.playground.game_map.grids;
+        if (grids[j * nx + i].is_poisoned)
+            return true;
+    }
+    is_posion_attacked(){
+        this.hp -= 10;
+        if (this.hp <= 0) {
+            //console.log(this.hp);
+            this.destroy();
+            return false;
+        }
+    }
+    update_poisoned_time() {
+        if (this.character === "me" && this.check_in_poison()) {
+            this.poisoned_time += this.timedelta / 1000;
+            if (this.poisoned_time >= 1) {
+                this.is_posion_attacked();
+                this.playground.mps.send_attack(this.uid, 0, 0, 0, 10, 0, "posion");
+                if (this.hp <= this.eps) {
+                    this.destroy();
+                }
+                this.poisoned_time = 0; // 超过1s重新计时
+                // 用attacked_time渲染掉血
+            }
+        } else {
+            this.poisoned_time = 0;
+        }
+    }
     update_cd() {
         this.fireball_cd -= this.timedelta / 1000;
         this.fireball_cd = Math.max(0, this.fireball_cd);
@@ -269,9 +319,14 @@ class Player extends GameObject {
     update() {
         this.start_attack += this.timedelta / 1000;
 
+         if (this.playground.player_count > 1) {
+            this.update_poisoned_time();
+        }
         this.update_win();
 
-        if (this.character === "me" && this.playground.state === "fighting") this.update_cd();
+        if (this.character === "me" && this.playground.state === "fighting"){
+            this.update_cd();
+        }
 
         // 如果是玩家，并且正在被聚焦，修改background的 (cx, cy)
         if (this.character === "me" && this.playground.focus_player === this) {
@@ -280,7 +335,48 @@ class Player extends GameObject {
 
         this.update_move();
 
+
+
         this.render();
+    }
+
+    render_hp_bar(x, y, scale, color) {
+        this.ctx.save();
+
+        // 边框
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, 0, -Math.PI, true);
+        this.ctx.lineTo(x - this.radius * 1.3 * scale, y);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI, Math.PI * 2, false);
+        this.ctx.lineTo(x + this.radius * 1.1 * scale, y);
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // 血量条
+        let start_angle = - (1 - this.hp / this.max_hp) * Math.PI;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, start_angle, -Math.PI, true);
+        this.ctx.lineTo(x - this.radius * 1.3 * scale, y);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI, Math.PI * 2 + start_angle, false);
+        this.ctx.fillStyle = color;
+        this.ctx.fill();
+
+        // 血量值
+        this.ctx.font = 0.02 * scale + "px bold serif";
+        this.ctx.fillStyle = "rgb(0, 0, 0)";
+        this.textAlign = "center";
+        this.ctx.fillText(this.hp, x + this.radius * 1.6 * scale, y);
+
+        // 掉血量条
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, this.radius * 1.1 * scale, 0, start_angle, true);
+        this.ctx.lineTo(x + (this.radius * 1.3 * Math.cos(start_angle)) * scale, y + this.radius * 1.3 * Math.sin(start_angle) * scale);
+        this.ctx.arc(x, y, this.radius * 1.3 * scale, Math.PI * 2 + start_angle, Math.PI * 2, false);
+        this.ctx.fillStyle = "rgb(44, 65, 43)";
+        this.ctx.fill();
+
+        this.ctx.restore();
     }
 
     render_skill_cd() {
@@ -319,6 +415,12 @@ class Player extends GameObject {
             if (this.character != "me") { // 一个隐藏的bug，如果是玩家自己并且return，会导致技能图标渲染不出来
                 return;
             }
+        }
+
+        if (this.character === "me") {
+            this.render_hp_bar(ctx_x * scale, ctx_y * scale, scale, "rgb(65,105,225)"); // 蓝色
+        } else {
+            this.render_hp_bar(ctx_x * scale, ctx_y * scale, scale, "rgb(249, 19, 51)"); // 红色
         }
 
         if (this.character === "me" && this.playground.state === "fighting") {

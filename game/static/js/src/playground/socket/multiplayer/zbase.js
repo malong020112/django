@@ -32,6 +32,9 @@ class MultiPlayerSocket{
                 console.log("receive post");
                 outer.receive_message(data.username, data.text);
             }
+            else if(event === "posion_attack"){
+                outer.receive_posion_attack(uid);
+            }
         };
     }
     send_create_player(username, photo){
@@ -106,7 +109,7 @@ class MultiPlayerSocket{
             fireball.uid = ball_uid;
         }
     }
-    send_attack(attackee_uid, x, y, angle, damage, ball_uid){
+    send_attack(attackee_uid, x, y, angle, damage, ball_uid, source){
         let outer = this;
         //console.log("send attack");
         this.ws.send(JSON.stringify({
@@ -118,6 +121,7 @@ class MultiPlayerSocket{
             'angle': angle,
             'damage': damage,
             'ball_uid': ball_uid,
+            'source': source,
         }));
     }
     receive_attack(uid, attackee_uid, x, y, angle, damage, ball_uid){
@@ -141,5 +145,19 @@ class MultiPlayerSocket{
     receive_message(username, text){
         //console.log("receive", text);
         this.playground.chat.add_message(username, text);
+    }
+    send_posion_attack(){
+        let outer = this;
+        this.ws.send(JSON.stringify({
+            'event': "posion_attack",
+            'uid': outer.uid,
+        }));
+    }
+    receive_posion_attack(uid){
+        let player = this.get_player(uid);
+        console.log("receive posion attack");
+        if(player){
+            player.is_posion_attacked();
+        }
     }
 }

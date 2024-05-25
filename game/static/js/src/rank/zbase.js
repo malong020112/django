@@ -32,6 +32,8 @@ class RankList{
         })
     }
     get_rank_list(){
+        console.log(this.root.isLogin)
+        //if(!this.root.isLogin) return ;
         // 获取 ID 为 "rank-list" 的 div 元素
         var rankList = document.getElementById("rank-list");
 
